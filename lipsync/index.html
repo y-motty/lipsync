@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 </head>
@@ -6,8 +6,10 @@
 
 <div id="audio">
 	しゃべりだしの音量：
-	<canvas></canvas><br>
-	<input type="range" name="volume" value="0.5" max="1" step="0.05">
+	<canvas></canvas>
+	<br>
+	<input type="range" name="volume" value="0.5" max="1" step="0.05"><br>
+	<button type="button" name="start">マイクが反応しない場合ここをクリック</button><br><br>
 </div>
 
 
@@ -18,151 +20,158 @@
 </div>
 
 <script>
+window.onload = function() {
+
 // キャンバスサイズ
-var canvas = {
-	// 画像の幅(px)
-	width: 640,
-	// 画像の高さ(px)
-	height: 480,
-	// 背景の透明色のカラーコード
-	color: '#00FF00',
-}
+	var canvas = {
+		// 画像の幅(px)
+		width: 640,
+		// 画像の高さ(px)
+		height: 480,
+		// 背景の透明色のカラーコード
+		color: '#00FF00',
+	}
 
-// 音量どの程度の割合でしゃべりだすか初期値(最小:0～最大:1)
-var volume = 0.5;
-
-
+	// 音量どの程度の割合でしゃべりだすか初期値(最小:0～最大:1)
+	var volume = 0.5;
 
 
-// マイク音量判定関連
-navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
-var cv_vol = document.querySelector('#audio canvas');
-var ctx_vol = cv_vol.getContext('2d');
-cv_vol.width = cv_vol.offsetWidth;
-cv_vol.height = cv_vol.offsetHeight;
+	// マイク音量判定関連
+	navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
-var cv_body = document.querySelector('#view canvas.body');
-var ctx_body = cv_body.getContext('2d');
-cv_body.width = canvas.width;
-cv_body.height = canvas.height;
+	var cv_vol = document.querySelector('#audio canvas');
+	var ctx_vol = cv_vol.getContext('2d');
+	cv_vol.width = cv_vol.offsetWidth;
+	cv_vol.height = cv_vol.offsetHeight;
 
-var cv_eye = document.querySelector('#view canvas.eye');
-var ctx_eye = cv_eye.getContext('2d');
-cv_eye.width = canvas.width;
-cv_eye.height = canvas.height;
+	var cv_body = document.querySelector('#view canvas.body');
+	var ctx_body = cv_body.getContext('2d');
+	cv_body.width = canvas.width;
+	cv_body.height = canvas.height;
 
-var cv_mouse = document.querySelector('#view canvas.mouse');
-var ctx_mouse = cv_mouse.getContext('2d');
-cv_mouse.width = canvas.width;
-cv_mouse.height = canvas.height;
+	var cv_eye = document.querySelector('#view canvas.eye');
+	var ctx_eye = cv_eye.getContext('2d');
+	cv_eye.width = canvas.width;
+	cv_eye.height = canvas.height;
+
+	var cv_mouse = document.querySelector('#view canvas.mouse');
+	var ctx_mouse = cv_mouse.getContext('2d');
+	cv_mouse.width = canvas.width;
+	cv_mouse.height = canvas.height;
 
 
-navigator.getUserMedia(
-	{audio : true},
-	function(stream){
-		var audioContext = new AudioContext();
-		var analyser = audioContext.createAnalyser();
-		var timeDomain = new Float32Array(analyser.frequencyBinCount);
-		audioContext.createMediaStreamSource(stream).connect(analyser);
 
-		// アニメーション情報取得
-		var status = {body: false, eye: false, mouse: false, speaking: false};
-		(function animation(){
-			// 音量ゲージ表示
-			analyser.getFloatTimeDomainData(timeDomain);
-			ctx_vol.clearRect(0, 0, cv_vol.width, cv_vol.height);
-			var max = Math.max.apply(null, timeDomain);
-			ctx_vol.fillStyle = 'red';
-			ctx_vol.fillRect(0, 0, volume * cv_vol.width, cv_vol.height);
-			ctx_vol.fillStyle = 'blue';
-			ctx_vol.fillRect(0, 0, max * cv_vol.width, cv_vol.height);
+	navigator.getUserMedia(
+		{audio : true},
+		function(stream){
+			var audioContext = new AudioContext();
+			var analyser = audioContext.createAnalyser();
+			var timeDomain = new Float32Array(analyser.frequencyBinCount);
+			audioContext.createMediaStreamSource(stream).connect(analyser);
 			
-			
-			// 体を固定表示
-			if (!status.body) {
-				var img = new Image();
-				img.onload = function(){
-					ctx_body.clearRect(0, 0, cv_body.width, cv_body.height);
-					ctx_body.fillStyle = canvas.color;
-					ctx_body.fillRect(0, 0, cv_body.width, cv_body.height);
-					ctx_body.drawImage(this, 0, 0);
+			// chromeポリシー変更対応
+			document.querySelector('#audio button').onclick = function(){
+				audioContext.resume();
+			};
+
+			// アニメーション情報取得
+			var status = {body: false, eye: false, mouse: false, speaking: false};
+			(function animation(){
+				// 音量ゲージ表示
+				analyser.getFloatTimeDomainData(timeDomain);
+				ctx_vol.clearRect(0, 0, cv_vol.width, cv_vol.height);
+				var max = Math.max.apply(null, timeDomain);
+				ctx_vol.fillStyle = 'red';
+				ctx_vol.fillRect(0, 0, volume * cv_vol.width, cv_vol.height);
+				ctx_vol.fillStyle = 'blue';
+				ctx_vol.fillRect(0, 0, max * cv_vol.width, cv_vol.height);
+				
+				
+				// 体を固定表示
+				if (!status.body) {
+					var img = new Image();
+					img.onload = function(){
+						ctx_body.clearRect(0, 0, cv_body.width, cv_body.height);
+						ctx_body.fillStyle = canvas.color;
+						ctx_body.fillRect(0, 0, cv_body.width, cv_body.height);
+						ctx_body.drawImage(this, 0, 0);
+					}
+					img.src = './data/body.png';
+					status.body = true;
 				}
-				img.src = './data/body.png';
-				status.body = true;
-			}
-			// 目はランダムタイミング
-			if (!status.eye) {
-				var img = new Image();
-				img.onload = function(){
-					ctx_eye.clearRect(0, 0, cv_eye.width, cv_eye.height);
-					ctx_eye.drawImage(this, 0, 0);
-				};
-				img.src = './data/eye_open.png';
-				status.eye = true;
-				// ランダム時限装置でフラグ解除(MAX5秒瞬きしない)
-				setTimeout(function(){
+				// 目はランダムタイミング
+				if (!status.eye) {
 					var img = new Image();
 					img.onload = function(){
 						ctx_eye.clearRect(0, 0, cv_eye.width, cv_eye.height);
 						ctx_eye.drawImage(this, 0, 0);
 					};
-					img.src = './data/eye_close.png';
-					// 瞬きは100ミリ秒～400秒間
+					img.src = './data/eye_open.png';
+					status.eye = true;
+					// ランダム時限装置でフラグ解除(MAX5秒瞬きしない)
 					setTimeout(function(){
-						status.eye = false;
-					}, (Math.random() * 300) + 100);
-				}, Math.random() * 5000);
-			}
-			// 口の閉じたパターンを固定セット
-			if (!status.mouse) {
-				var img = new Image();
-				img.onload = function(){
-					ctx_mouse.clearRect(0, 0, cv_mouse.width, cv_mouse.height);
-					ctx_mouse.drawImage(this, 0, 0);
-				};
-				img.src = './data/mouse_close.png';
-				status.mouse = true;
-			}
-			// 口パクは規定音量超えたら開始
-			else if (volume < max && !status.speaking) {
-				setTimeout(function(){
+						var img = new Image();
+						img.onload = function(){
+							ctx_eye.clearRect(0, 0, cv_eye.width, cv_eye.height);
+							ctx_eye.drawImage(this, 0, 0);
+						};
+						img.src = './data/eye_close.png';
+						// 瞬きは100ミリ秒～400秒間
+						setTimeout(function(){
+							status.eye = false;
+						}, (Math.random() * 300) + 100);
+					}, Math.random() * 5000);
+				}
+				// 口の閉じたパターンを固定セット
+				if (!status.mouse) {
 					var img = new Image();
 					img.onload = function(){
 						ctx_mouse.clearRect(0, 0, cv_mouse.width, cv_mouse.height);
 						ctx_mouse.drawImage(this, 0, 0);
 					};
-					img.src = './data/mouse_open.png';
-					status.speaking = true;
-					// 口パクアニメタイムは規定（200ミリ秒）
+					img.src = './data/mouse_close.png';
+					status.mouse = true;
+				}
+				// 口パクは規定音量超えたら開始
+				else if (volume < max && !status.speaking) {
+					setTimeout(function(){
+						var img = new Image();
+						img.onload = function(){
+							ctx_mouse.clearRect(0, 0, cv_mouse.width, cv_mouse.height);
+							ctx_mouse.drawImage(this, 0, 0);
+						};
+						img.src = './data/mouse_open.png';
+						status.speaking = true;
+						// 口パクアニメタイムは規定（200ミリ秒）
+						setTimeout(function(){
+							status.mouse = false;
+						}, 200);
+					}, 200);
+				}
+				// 音量落ちたら口パク終了
+				else if (status.speaking && max <= volume) {
 					setTimeout(function(){
 						status.mouse = false;
+						status.speaking = false;
 					}, 200);
-				}, 200);
-			}
-			// 音量落ちたら口パク終了
-			else if (status.speaking && max <= volume) {
-				setTimeout(function(){
-					status.mouse = false;
-					status.speaking = false;
-				}, 200);
-			}
-			
-			
-			requestAnimationFrame(animation);
-		})();
+				}
+				
+				
+				requestAnimationFrame(animation);
+			})();
 
-	},
-	function(err){
-		console.log(err);
-	}
-);
+		},
+		function(err){
+			console.log(err);
+		}
+	);
 
-document.querySelector('#audio input[type="range"]').oninput = function(){
-	console.log(this.value);
-	volume = this.value;
-};
-
+	document.querySelector('#audio input[type="range"]').oninput = function(){
+		console.log(this.value);
+		volume = this.value;
+	};
+}
 </script>
 
 <style>
